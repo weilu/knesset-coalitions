@@ -1,0 +1,49 @@
+1. get_odata.py
+
+The Parliament has a service to retrieve the data named ODATA.
+Here I used this service and extracted the relevant data to a csv file.
+
+The votes.csv consists of the data as is -- the votes for each law by each member. 7057 laws X 143 members.
+The values of the vote results are 0 ,1, 2, 3, 4. Where 1 - for the law, 2 - opposed to the law, 3 - abstained, 0 - didn’t attend. 4 - I don’t know.
+
+2. create_csv.py
+
+outputs: votes.csv and law2vector.pickle.
+Creates a csv readable for humans -- votes.csv.
+7057 law ids (rows) x 143 kmmbrs ids (cols)
+1 - for the law, 2 - opposed to the law, 0 - didn't attend.
+In addition, we dump the same data structure to a pickle -- 'law2vector.pickle'
+
+
+3.to_game.py
+
+Here, we convert the original data to be suitable for our problem -- cooperative game. We create sets of players (members) and calculate value for each set.
+outputs: A, b -- inputs for LP
+
+
+4. helpers/lp.py and lp_cvx.py
+both outputs x -- a payoff division.
+lp_cvx - more efficient
+
+This is an implementation of the optimization problem represented at: Theorem 3.1 (2) in 2016 paper -- https://arxiv.org/pdf/1505.00039.pdf
+(see also the image in helpers/opt_problem.png)
+
+Linear Programming is intended to solve the following problem form:
+
+Minimize:     c^T * x
+
+Subject to:   A_ub * x <= b_ub
+
+We multiply A and b by -1 to suite the input for the LP (to flip the equality).
+
+c = [1]*len(A[0])
+from scipy.optimize import linprog
+res = linprog(c, A_ub=A, b_ub=b, bounds=(0, None), options={"disp": True},method='interior-point')
+
+
+
+
+
+
+
+
