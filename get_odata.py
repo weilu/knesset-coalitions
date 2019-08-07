@@ -31,44 +31,36 @@ logging.basicConfig(level=logging.INFO)
 from pyslet.odata2.client import Client
 import pyslet.odata2.core as core
 
+
+KMMRS_PICKLE_FILENAME = 'kmmrs2.pickle'
+LAWS_PICKLE_FILENAME = 'laws2.pickle'
+kmmbrs = {}
+laws = {}
+
 c = Client('http://knesset.gov.il/Odata/Votes.svc/')
-res = c.feeds['vote_rslts_kmmbr_shadow'].open()
-filter = core.CommonExpression.from_str("knesset_num eq 20")
-res.set_filter(filter)
-laws = helper.load_pickle('laws.pickle')       # laws = {<vote_id>: { "kmmbrs2votes": <kmmbr_id>: <vote_result>}}
-kmmbrs = helper.load_pickle('kmmrs.pickle')    # kmmbrs = {<kmmbr_id> : {kmmbr_name: <kmmbr_name> , faction_id: <faction_id>, faction_name: <faction_name> }}
-#helper.init_pickle('kmmrs.pickle') #use for first run
-#helper.init_pickle('laws.pickle')  #use for first run
+with c.feeds['vote_rslts_kmmbr_shadow'].open() as collection:
+    filter = core.CommonExpression.from_str("knesset_num eq 20")
+    collection.set_filter(filter)
 
-# todo fix products..naming
-for p in res.itervalues():
-    #print (p.key(), p['vote_id'].value, p['kmmbr_id'].value, p['kmmbr_name'].value, p['vote_result'].value, p['knesset_num'].value, p['faction_id'].value,p['faction_name'].value)
-    vote_id, kmmbr_id, kmmbr_name, vote_result, faction_id, faction_name = p['vote_id'].value,  p['kmmbr_id'].value, p['kmmbr_name'].value, p['vote_result'].value, p['faction_id'].value,p['faction_name'].value
-    if vote_id in laws:
-        laws[vote_id]["kmmbrs2votes"][kmmbr_id] = vote_result
-    else:
-        laws[vote_id]={'kmmbrs2votes': {kmmbr_id: vote_result}}
+    num_total = len(collection)
+    print(f'Total votes: {num_total}')
 
-    if kmmbr_id not in kmmbrs:
-        kmmbrs[kmmbr_id] = {'kmmbr_id': kmmbr_id, 'kmmbr_name': kmmbr_name, 'faction_id': faction_id, 'faction_name': faction_name}
-        print(kmmbrs)
-        helper.dump_pickle('kmmrs.pickle', kmmbrs) #updates our pickles ones in a while
-        helper.dump_pickle('laws.pickle', laws)
+    count = 0
+    for p in collection.itervalues():
+        vote_id, kmmbr_id, kmmbr_name, vote_result, faction_id, faction_name = p['vote_id'].value,  p['kmmbr_id'].value, p['kmmbr_name'].value, p['vote_result'].value, p['faction_id'].value,p['faction_name'].value
+        if vote_id in laws:
+            laws[vote_id]["kmmbrs2votes"][kmmbr_id] = vote_result
+        else:
+            laws[vote_id]={'kmmbrs2votes': {kmmbr_id: vote_result}}
 
-res.close()
-# print()
-# print('laws len:', len(laws))
-# print()
-# print('knesset mmbrs len:', len(kmmbrs))
+        if kmmbr_id not in kmmbrs:
+            kmmbrs[kmmbr_id] = {'kmmbr_id': kmmbr_id, 'kmmbr_name': kmmbr_name, 'faction_id': faction_id, 'faction_name': faction_name}
+        count += 1
+        if count % 100 == 0:
+            print(f'Done: {count}/{num_total}')
 
+helper.dump_pickle(KMMRS_PICKLE_FILENAME, kmmbrs) #updates our pickles ones in a while
+helper.dump_pickle(LAWS_PICKLE_FILENAME, laws)
 
-
-
-
-
-
-
-
-
-
-
+print('laws len:', len(laws))
+print('knesset mmbrs len:', len(kmmbrs))
